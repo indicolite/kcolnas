@@ -23,3 +23,14 @@ GPLv2+
 src/crc32c.c (copied from btrfs-progs which copied from linux kernel)
 all other original files
 
+============================
+Changes to be committed:
+  (use "git reset HEAD <file>..." to unstage)
+
+	modified:   src/client.c
+	modified:   src/cmd.c
+	modified:   src/main.c
+	modified:   src/sanlock_internal.h
+	modified:   src/sanlock_resource.h
+	modified:   src/sanlock_sock.h
+fix bug: https://bugzilla.redhat.com/show_bug.cgi?id=1534331
