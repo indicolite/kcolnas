@@ -1226,6 +1226,7 @@ static void process_connection(int ci)
 	case SM_CMD_REG_EVENT:
 	case SM_CMD_END_EVENT:
 	case SM_CMD_SET_CONFIG:
+	case SM_CMD_RESIGNIN:
 		call_cmd_daemon(ci, &h, client_maxi);
 		break;
 	case SM_CMD_ADD_LOCKSPACE:
@@ -1843,6 +1844,7 @@ static void print_usage(void)
 	printf("sanlock client rem_lockspace -s LOCKSPACE\n");
 	printf("sanlock client command -r RESOURCE -c <path> <args>\n");
 	printf("sanlock client acquire -r RESOURCE -p <pid>\n");
+	printf("sanlock client resignin -p <pid>\n");
 	printf("sanlock client convert -r RESOURCE -p <pid>\n");
 	printf("sanlock client release -r RESOURCE -p <pid>\n");
 	printf("sanlock client inquire -p <pid>\n");
@@ -1957,6 +1959,8 @@ static int read_command_line(int argc, char *argv[])
 			com.action = ACT_COMMAND;
 		else if (!strcmp(act, "acquire"))
 			com.action = ACT_ACQUIRE;
+		else if (!strcmp(act, "resignin"))
+			com.action = ACT_RESIGNIN;
 		else if (!strcmp(act, "convert"))
 			com.action = ACT_CONVERT;
 		else if (!strcmp(act, "release"))
@@ -2567,7 +2571,7 @@ static int do_client(void)
 	int i, fd;
 	int rv = 0;
 
-	if (com.action == ACT_COMMAND || com.action == ACT_ACQUIRE) {
+	if (com.action == ACT_COMMAND || com.action == ACT_ACQUIRE || com.action == ACT_RESIGNIN) {
 		for (i = 0; i < com.res_count; i++) {
 			res = com.res_args[i];
 
@@ -2634,6 +2638,25 @@ static int do_client(void)
 
 		/* release happens automatically when pid exits and
 		   daemon detects POLLHUP on registered connection */
+		break;
+
+	case ACT_RESIGNIN:
+		log_tool("resignin");
+		fd = sanlock_resignin(com.pid);
+		log_tool("resignin done %d", fd);
+
+		if (fd < 0)
+			goto out;
+
+		//flags |= com.orphan ? SANLK_ACQUIRE_ORPHAN : 0;
+		//log_tool("acquire fd %d", fd);
+		//rv = sanlock_acquire(fd, -1, flags, com.res_count, com.res_args, NULL);
+		//log_tool("acquire done %d", rv);
+
+		//if (rv < 0)
+		//	goto out;
+
+
 		break;
 
 	case ACT_ADD_LOCKSPACE:
@@ -3090,7 +3113,7 @@ static int do_direct(void)
 	case ACT_READ_LEADER:
 		rv = do_direct_read_leader();
 		break;
-	
+
 	case ACT_WRITE_LEADER:
 		rv = do_direct_write_leader();
 		break;

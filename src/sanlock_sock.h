@@ -55,6 +55,7 @@ enum {
 	SM_CMD_SET_EVENT         = 32,
 	SM_CMD_SET_CONFIG        = 33,
 	SM_CMD_RENEWAL           = 34,
+	SM_CMD_RESIGNIN          = 35,
 };
 
 #define SM_CB_GET_EVENT 1

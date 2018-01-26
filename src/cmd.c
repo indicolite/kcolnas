@@ -2821,6 +2821,30 @@ void call_cmd_daemon(int ci, struct sm_header *h_recv, int client_maxi)
 		memset(client[ci].tokens, 0, sizeof(struct token *) * SANLK_MAX_RESOURCES);
 		auto_close = 0;
 		break;
+	case SM_CMD_RESIGNIN:
+	
+		pid = h_recv->data2;
+		log_debug("cmd_resignin ci %d fd %d pid %d", ci, fd, com.pid);
+		snprintf(client[ci].owner_name, SANLK_NAME_LEN, "%d", pid);
+		client[ci].pid = pid;
+		//client[ci].deadfn = client_pid_dead;
+		client[ci].deadfn = 0;
+
+		if (client[ci].tokens) {
+			log_error("cmd_resignin ci %d fd %d tokens exist slots %d",
+				  ci, fd, client[ci].tokens_slots);
+			free(client[ci].tokens);
+		}
+		client[ci].tokens_slots = SANLK_MAX_RESOURCES;
+		client[ci].tokens = malloc(sizeof(struct token *) * SANLK_MAX_RESOURCES);
+		if (!client[ci].tokens) {
+			rv = -ENOMEM;
+			log_error("cmd_resignin ci %d fd %d ENOMEM", ci, fd);
+			break;
+		}
+		memset(client[ci].tokens, 0, sizeof(struct token *) * SANLK_MAX_RESOURCES);
+		auto_close = 0;
+		break;
 	case SM_CMD_RESTRICT:
 		cmd_restrict(ci, fd, h_recv);
 		auto_close = 0;
