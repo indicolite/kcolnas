@@ -34,3 +34,4 @@ Changes to be committed:
 	modified:   src/sanlock_resource.h
 	modified:   src/sanlock_sock.h
 fix bug: https://bugzilla.redhat.com/show_bug.cgi?id=1534331
+sanlock client resignin -r RESOURCE -p <pid>
