@@ -2824,7 +2824,7 @@ void call_cmd_daemon(int ci, struct sm_header *h_recv, int client_maxi)
 	case SM_CMD_RESIGNIN:
 	
 		pid = h_recv->data2;
-		log_debug("cmd_resignin ci %d fd %d pid %d", ci, fd, com.pid);
+		log_debug("cmd_resignin ci %d fd %d pid %d", ci, fd, pid);
 		snprintf(client[ci].owner_name, SANLK_NAME_LEN, "%d", pid);
 		client[ci].pid = pid;
 		//client[ci].deadfn = client_pid_dead;
