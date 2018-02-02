@@ -2571,7 +2571,7 @@ static int do_client(void)
 	int i, fd;
 	int rv = 0;
 
-	if (com.action == ACT_COMMAND || com.action == ACT_ACQUIRE || com.action == ACT_RESIGNIN) {
+	if (com.action == ACT_COMMAND || com.action == ACT_ACQUIRE ){//|| com.action == ACT_RESIGNIN) {
 		for (i = 0; i < com.res_count; i++) {
 			res = com.res_args[i];
 
@@ -2648,15 +2648,34 @@ static int do_client(void)
 		if (fd < 0)
 			goto out;
 
-		//flags |= com.orphan ? SANLK_ACQUIRE_ORPHAN : 0;
-		//log_tool("acquire fd %d", fd);
-		//rv = sanlock_acquire(fd, -1, flags, com.res_count, com.res_args, NULL);
-		//log_tool("acquire done %d", rv);
+		flags |= com.orphan ? SANLK_ACQUIRE_ORPHAN : 0;
+		log_tool("acquire fd %d", fd);
+		rv = sanlock_acquire(fd, -1, flags, com.res_count, com.res_args, NULL);
+		//rv = sanlock_acquire(fd, com.pid, 0, com.res_count, com.res_args, NULL);
+		log_tool("acquire done %d", rv);
 
-		//if (rv < 0)
-		//	goto out;
+		daemon(0, 0);
+		int pid1 = fork(); 
+		if (pid1 == 0) {
+			//setpgid(pid1, 0);
+			while(1) {
+				char temp_cmd[50];
+				char int_to_str[10];
+				sprintf(int_to_str, "%d", com.pid);
+				strcpy(temp_cmd, "ps -eo pid |grep ");
+				strcat(temp_cmd, int_to_str);
+				usleep(1000);
+				int reslt = system(temp_cmd);
+				if (reslt != 0) { 
+					break;
+				}
+			}
+		} else {
+			goto out;
+		}
 
-
+		if (rv < 0)
+			goto out;
 		break;
 
 	case ACT_ADD_LOCKSPACE:
@@ -3113,7 +3132,7 @@ static int do_direct(void)
 	case ACT_READ_LEADER:
 		rv = do_direct_read_leader();
 		break;
-
+	
 	case ACT_WRITE_LEADER:
 		rv = do_direct_write_leader();
 		break;
