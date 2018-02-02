@@ -2827,8 +2827,8 @@ void call_cmd_daemon(int ci, struct sm_header *h_recv, int client_maxi)
 		log_debug("cmd_resignin ci %d fd %d pid %d", ci, fd, pid);
 		snprintf(client[ci].owner_name, SANLK_NAME_LEN, "%d", pid);
 		client[ci].pid = pid;
-		//client[ci].deadfn = client_pid_dead;
-		client[ci].deadfn = 0;
+		client[ci].deadfn = client_pid_dead;
+		//client[ci].deadfn = 0;
 
 		if (client[ci].tokens) {
 			log_error("cmd_resignin ci %d fd %d tokens exist slots %d",
