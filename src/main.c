@@ -2658,7 +2658,7 @@ static int do_client(void)
 
 		if (daemon(0, 0) < 0) {
 			log_tool("cannot fork daemon\n");
-			break;
+			exit(EXIT_FAILURE);
 		}
 		int pid1 = fork(); 
 		if (pid1 == 0) {
