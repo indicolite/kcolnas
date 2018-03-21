@@ -29,7 +29,6 @@ fix bug: https://bugzilla.redhat.com/show_bug.cgi?id=1534331
 	sanlock client acquire -r RESOURCE -p <pid>
 	Changes to be committed:
   (use "git reset HEAD <file>..." to unstage)
-
 	modified:   src/client.c
 	modified:   src/cmd.c
 	modified:   src/main.c
