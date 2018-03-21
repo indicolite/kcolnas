@@ -53,6 +53,7 @@ void client_free(int ci);
 void client_recv_all(int ci, struct sm_header *h_recv, int pos);
 void client_pid_dead(int ci);
 void send_result(int fd, struct sm_header *h_recv, int result);
+void kill_pids(struct space *sp);
 
 static uint32_t token_id_counter = 1;
 
@@ -2793,6 +2794,7 @@ void call_cmd_daemon(int ci, struct sm_header *h_recv, int client_maxi)
 {
 	int rv, pid, auto_close = 1;
 	int fd = client[ci].fd;
+	struct space *sp;
 
 	switch (h_recv->cmd) {
 	case SM_CMD_REGISTER:
@@ -2844,6 +2846,21 @@ void call_cmd_daemon(int ci, struct sm_header *h_recv, int client_maxi)
 		}
 		memset(client[ci].tokens, 0, sizeof(struct token *) * SANLK_MAX_RESOURCES);
 		auto_close = 0;
+		break;
+	case SM_CMD_KILLALL:
+		
+		pthread_mutex_lock(&spaces_mutex);
+		sp = find_lockspace("__LIBVIRT__DISKS__");
+		if (sp)
+			log_debug("cmd_killall sp %p get okay", sp);
+		pthread_mutex_unlock(&spaces_mutex);
+		kill_pids(sp);
+		/***
+		for (ci = 0; ci <= client_maxi; ci++) {
+			if(client[ci].pid > 0)
+				send_helper_kill(sp, &client[ci], SIGKILL);
+		}
+		***/
 		break;
 	case SM_CMD_RESTRICT:
 		cmd_restrict(ci, fd, h_recv);

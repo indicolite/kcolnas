@@ -561,7 +561,8 @@ static int client_using_space(struct client *cl, struct space *sp)
 	return rv;
 }
 
-static void kill_pids(struct space *sp)
+void kill_pids(struct space *sp);
+void kill_pids(struct space *sp)
 {
 	struct client *cl;
 	uint64_t now, last_success;
@@ -1227,6 +1228,7 @@ static void process_connection(int ci)
 	case SM_CMD_END_EVENT:
 	case SM_CMD_SET_CONFIG:
 	case SM_CMD_RESIGNIN:
+	case SM_CMD_KILLALL:
 		call_cmd_daemon(ci, &h, client_maxi);
 		break;
 	case SM_CMD_ADD_LOCKSPACE:
@@ -2654,7 +2656,10 @@ static int do_client(void)
 		//rv = sanlock_acquire(fd, com.pid, 0, com.res_count, com.res_args, NULL);
 		log_tool("acquire done %d", rv);
 
-		daemon(0, 0);
+		if (daemon(0, 0) < 0) {
+			log_tool("cannot fork daemon\n");
+			break;
+		}
 		int pid1 = fork(); 
 		if (pid1 == 0) {
 			//setpgid(pid1, 0);
