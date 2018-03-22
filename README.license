@@ -37,3 +37,4 @@ fix bug: https://bugzilla.redhat.com/show_bug.cgi?id=1534331
 	modified:   src/sanlock_sock.h
 add interface: client killall
 	to fix actively/proactively killing all remaining vms
+to do: https://bugzilla.redhat.com/show_bug.cgi?id=1559223
