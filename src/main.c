@@ -114,7 +114,8 @@ static void close_helper(void)
  * msgs before getting EAGAIN.
  */
 
-static void send_helper_kill(struct space *sp, struct client *cl, int sig)
+void send_helper_kill(struct space *sp, struct client *cl, int sig);
+void send_helper_kill(struct space *sp, struct client *cl, int sig)
 {
 	struct helper_msg hm;
 	int rv;
@@ -731,6 +732,77 @@ static unsigned int time_diff(struct timeval *begin, struct timeval *end)
 	return (result.tv_sec * 1000) + (result.tv_usec / 1000);
 }
 
+//const char path[]="/tmp/sanlock-agent-sock";
+const char path[]="/var/run/hastack/sanlock-agent-sock";
+static int ask_hastack(void){
+	int server_fd; 
+	struct sockaddr_un server_addr; 
+	log_debug("in ask_hastack()");
+	server_fd = socket(AF_LOCAL,SOCK_STREAM,0);
+	if(server_fd == -1){
+		perror("socket: ");
+		return -1;
+	}
+	struct timeval tv;
+	tv.tv_sec = 20;
+	tv.tv_usec = 0;
+	setsockopt(server_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+	setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+	server_addr.sun_family=AF_LOCAL;
+	strcpy(server_addr.sun_path,path);
+	if(connect(server_fd,(struct sockaddr *)&server_addr,sizeof(server_addr)) == -1){
+		log_debug("connect hastack failed.");
+		return -1;
+    	}
+	char recv[105],send[105];
+	log_debug("the client started, begin interaction with hastack-agent: ");
+
+	//while(1){
+	memset(send,0,sizeof(send));
+	strcpy(send, "fencing_ack");
+	if(write(server_fd, send, strlen(send))==-1){
+		log_debug("send hastack-agent fencing_ack failed.");
+		//break;
+		close(server_fd);
+		return -1;
+	}
+
+	memset(recv,0,sizeof(recv));
+
+	if(read(server_fd,recv,105)==-1){
+		log_debug("recv hastack-agent message failed.");
+		//break;
+		close(server_fd);
+		return -1;
+	}
+	if(strcmp(recv,"fencing\n")==0){
+		log_debug("recv fencing message from hastack-agent.");
+		//break;
+		close(server_fd);
+		return -1;
+	}else {
+		log_debug("recv message from hastack-agent: %s",recv);
+		close(server_fd);
+		return 0;
+	}
+	//}
+	close(server_fd);
+	return -1;
+}
+
+static void kill_novagent(struct space *sp)
+{
+	log_debug("in kill_novagent");
+	int rev = ask_hastack();
+	if (rev == -1) {
+                log_debug("begin to handle kill message from hastack-agent.");
+                kill_pids(sp);
+        } else {
+                log_debug("unable to recoginze message from hastack-agent.");
+        }
+}
+
 #define STANDARD_CHECK_INTERVAL 1000 /* milliseconds */
 #define RECOVERY_CHECK_INTERVAL  200 /* milliseconds */
 
@@ -815,15 +887,20 @@ static int main_loop(void)
 				continue;
 			}
 
+			
 			if (sp->killing_pids) {
 				/*
 				 * continue to kill the pids with increasing
 				 * levels of severity until they all exit
 				 */
-				kill_pids(sp);
+				//kill_pids(sp);
+				log_debug("enter kill_novagent");
+				kill_novagent(sp);
+				log_debug("exit  kill_novagent");
 				check_interval = RECOVERY_CHECK_INTERVAL;
 				continue;
 			}
+
 
 			/*
 			 * check host_id lease renewal
@@ -849,7 +926,10 @@ static int main_loop(void)
 					  rv, sp->external_remove);
 				sp->space_dead = 1;
 				sp->killing_pids = 1;
-				kill_pids(sp);
+				//kill_pids(sp);
+				log_debug("enter kill_novagent");
+				kill_novagent(sp);
+				log_debug("exit  kill_novagent");
 				check_interval = RECOVERY_CHECK_INTERVAL;
 
 			} else if (check_all) {
@@ -2650,35 +2730,26 @@ static int do_client(void)
 		if (fd < 0)
 			goto out;
 
-		flags |= com.orphan ? SANLK_ACQUIRE_ORPHAN : 0;
-		log_tool("acquire fd %d", fd);
-		rv = sanlock_acquire(fd, -1, flags, com.res_count, com.res_args, NULL);
-		//rv = sanlock_acquire(fd, com.pid, 0, com.res_count, com.res_args, NULL);
-		log_tool("acquire done %d", rv);
-
 		if (daemon(0, 0) < 0) {
 			log_tool("cannot fork daemon\n");
 			exit(EXIT_FAILURE);
 		}
-		int pid1 = fork(); 
-		if (pid1 == 0) {
-			//setpgid(pid1, 0);
-			while(1) {
-				char temp_cmd[50];
-				char int_to_str[10];
-				sprintf(int_to_str, "%d", com.pid);
-				strcpy(temp_cmd, "ps -eo pid |grep ");
-				strcat(temp_cmd, int_to_str);
-				usleep(1000);
-				int reslt = system(temp_cmd);
-				if (reslt != 0) { 
-					break;
-				}
-			}
-		} else {
-			goto out;
-		}
 
+		while(1) {
+			char temp_cmd[50];
+	        	char int_to_str[10];
+			sprintf(int_to_str, "%d", com.pid);
+			strcpy(temp_cmd, "ps -eo pid |grep ");
+			strcat(temp_cmd, int_to_str);
+			sleep(1);
+			int reslt = system(temp_cmd);
+			if (reslt != 0) { 
+				rv = -1;
+				break;
+			}
+                }
+
+                log_tool("resignin exit %d\n", com.pid);
 		if (rv < 0)
 			goto out;
 		break;
