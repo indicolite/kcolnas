@@ -37,4 +37,7 @@ fix bug: https://bugzilla.redhat.com/show_bug.cgi?id=1534331
 	modified:   src/sanlock_sock.h
 add interface: client killall
 	to fix actively/proactively killing all remaining vms
+add interaction with linux socket
+    as Server, recv KILLALL signal from hastack-agent and kill_pids
+    as Client, read fencing_ack from hastack-agent and decide fencing(kill_pids) or not
 to do: https://bugzilla.redhat.com/show_bug.cgi?id=1559223
