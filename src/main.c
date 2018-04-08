@@ -732,11 +732,44 @@ static unsigned int time_diff(struct timeval *begin, struct timeval *end)
 	return (result.tv_sec * 1000) + (result.tv_usec / 1000);
 }
 
+static void scan_uuids(void)
+{
+	time_t rawtime;
+	FILE *outfile;
+
+	int ci;
+	outfile = fopen("/tmp/temp_uuid.txt", "w+");
+	if(outfile == NULL) {
+		log_debug("fopen temp_uuid file failed");
+	}
+	for (ci = 0; ci <= client_maxi; ci++) {
+		if(client[ci].pid > 0) {
+			log_debug("in ask_hastack: cmd_kill %d %s", client[ci].pid, client[ci].owner_name);
+			fprintf(outfile, "%s\n", client[ci].owner_name);
+		}
+	}
+	fclose(outfile);
+
+	time(&rawtime);
+	char new_file[255];
+	//sprintf(new_file,"/var/lib/hastack/detach_vms/vms_%lu",(unsigned long)time(NULL));
+	sprintf(new_file,"/tmp/bingo_%lu",(unsigned long)time(NULL));
+	log_debug("filename: %s", new_file);
+	char oldname[] = "/tmp/temp_uuid.txt";
+	int rel = rename(oldname, new_file);
+	if (rel == 0) {
+	        log_debug("file temp_uuid rename succeed");
+	} else {
+	        log_debug("failed to rename file temp_uuid");
+	}
+}
+
 //const char path[]="/tmp/sanlock-agent-sock";
 const char path[]="/var/run/hastack/sanlock-agent-sock";
-static int ask_hastack(void){
-	int server_fd; 
-	struct sockaddr_un server_addr; 
+static int ask_hastack(void)
+{
+	int server_fd;
+	struct sockaddr_un server_addr;
 	log_debug("in ask_hastack()");
 	server_fd = socket(AF_LOCAL,SOCK_STREAM,0);
 	if(server_fd == -1){
@@ -744,7 +777,7 @@ static int ask_hastack(void){
 		return -1;
 	}
 	struct timeval tv;
-	tv.tv_sec = 20;
+	tv.tv_sec = 40;
 	tv.tv_usec = 0;
 	setsockopt(server_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 	setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -753,6 +786,8 @@ static int ask_hastack(void){
 	strcpy(server_addr.sun_path,path);
 	if(connect(server_fd,(struct sockaddr *)&server_addr,sizeof(server_addr)) == -1){
 		log_debug("connect hastack failed.");
+		close(server_fd);
+		scan_uuids();
 		return -1;
     	}
 	char recv[105],send[105];
@@ -776,7 +811,7 @@ static int ask_hastack(void){
 		close(server_fd);
 		return -1;
 	}
-	if(strcmp(recv,"fencing\n")==0){
+	if(strcmp(recv,"fencing")==0){
 		log_debug("recv fencing message from hastack-agent.");
 		//break;
 		close(server_fd);
@@ -796,10 +831,18 @@ static void kill_novagent(struct space *sp)
 	log_debug("in kill_novagent");
 	int rev = ask_hastack();
 	if (rev == -1) {
-                log_debug("begin to handle kill message from hastack-agent.");
-                kill_pids(sp);
-        } else {
-                log_debug("unable to recoginze message from hastack-agent.");
+		log_debug("begin to handle kill message from hastack-agent.");
+		/****
+		int stat = popen("sudo /usr/bin/systemctl stop libvirtd", "r");
+		if (stat == 0) {
+			log_debug("ended up with stop libvirtd succeed.");
+		} else {
+			log_debug("ended up with stop libvirtd failed.");
+		}
+		****/
+		kill_pids(sp);
+	} else {
+		log_debug("unable to recoginze message from hastack-agent.");
         }
 }
 
@@ -887,16 +930,13 @@ static int main_loop(void)
 				continue;
 			}
 
-			
+
 			if (sp->killing_pids) {
 				/*
 				 * continue to kill the pids with increasing
 				 * levels of severity until they all exit
 				 */
-				//kill_pids(sp);
-				log_debug("enter kill_novagent");
-				kill_novagent(sp);
-				log_debug("exit  kill_novagent");
+				kill_pids(sp);
 				check_interval = RECOVERY_CHECK_INTERVAL;
 				continue;
 			}
@@ -2743,7 +2783,7 @@ static int do_client(void)
 			strcat(temp_cmd, int_to_str);
 			sleep(1);
 			int reslt = system(temp_cmd);
-			if (reslt != 0) { 
+			if (reslt != 0) {
 				rv = -1;
 				break;
 			}
@@ -3208,7 +3248,7 @@ static int do_direct(void)
 	case ACT_READ_LEADER:
 		rv = do_direct_read_leader();
 		break;
-	
+
 	case ACT_WRITE_LEADER:
 		rv = do_direct_write_leader();
 		break;
