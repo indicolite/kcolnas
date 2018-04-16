@@ -1189,18 +1189,66 @@ int sanlock_acquire(int sock, int pid, uint32_t flags, int res_count,
 int sanlock_resignin(int pid)
 {
 	int sock, rv;
+	char scan_ifdup_pid[100];
 
+	char pid_to_str[10];
+	sprintf(pid_to_str, "%d", pid);
+	strcpy(scan_ifdup_pid, "ps aux|grep resignin|grep -v grep|grep ");
+	strcat(scan_ifdup_pid, pid_to_str);
+	strcat(scan_ifdup_pid, "|wc -l|awk '{if($0>0) print $0}'");
+	//sleep(1);
+
+	FILE *fp;
+	char buffer[10];
+	int num;
+	fp = popen(scan_ifdup_pid, "r");
+	while((fgets(buffer,sizeof(buffer),fp))!=NULL)
+	{
+		int i=strlen(buffer);
+		if(buffer[i-1]=='\n')
+		{
+			buffer[i-1]=0;
+		}
+	}
+	num = buffer[0]-'0';
+
+	char scan_ifdup_pid1[100];
+	strcpy(scan_ifdup_pid1, "sanlock client status|grep ");
+	strcat(scan_ifdup_pid1, pid_to_str);
+	strcat(scan_ifdup_pid1, "|wc -l|awk '{if($0>0) print $0}'");
+
+	FILE *fp1;
+	char buffer1[10];
+	int num1;
+	fp1 = popen(scan_ifdup_pid1, "r");
+	while((fgets(buffer1,sizeof(buffer1),fp1))!=NULL)
+	{
+		int i1=strlen(buffer1);
+		if(buffer1[i1-1]=='\n')
+		{
+			buffer1[i1-1]=0;
+		}
+	}
+	num1 = buffer1[0]-'0';
+
+	if (num > 1 || num1 >= 2) {
+		return -1;
+	}
+	
 	rv = connect_socket(&sock);
 	if (rv < 0)
+		//rv = -2;
 		return rv;
 
 	rv = send_header(sock, SM_CMD_RESIGNIN, 0, 0, 0, pid);
 	if (rv < 0) {
+		rv = -2;
 		close(sock);
 		return rv;
 	}
-
-	return sock;
+	
+	return 0;
+	//return sock;
 }
 
 int sanlock_inquire(int sock, int pid, uint32_t flags, int *res_count,
