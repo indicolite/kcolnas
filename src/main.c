@@ -752,8 +752,8 @@ static void scan_uuids(void)
 
 	time(&rawtime);
 	char new_file[255];
-	//sprintf(new_file,"/var/lib/hastack/detach_vms/vms_%lu",(unsigned long)time(NULL));
-	sprintf(new_file,"/tmp/bingo_%lu",(unsigned long)time(NULL));
+	sprintf(new_file,"/var/lib/hastack/detach_vms/vms_%lu",(unsigned long)time(NULL));
+	//sprintf(new_file,"/tmp/bingo_%lu",(unsigned long)time(NULL));
 	log_debug("filename: %s", new_file);
 	char oldname[] = "/tmp/temp_uuid.txt";
 	int rel = rename(oldname, new_file);
@@ -762,6 +762,22 @@ static void scan_uuids(void)
 	} else {
 	        log_debug("failed to rename file temp_uuid");
 	}
+}
+
+static void save_file(void)
+{
+	int fd;
+	FILE *of;
+	of = fopen("/tmp/kill_libvirtd", "w+");
+	char cmds[]="systemctl stop libvirtd";
+	if(of == NULL) {
+	    log_debug("fopen kill_libvirtd file failed");
+	}
+	fprintf(of, "%s", cmds);
+	fclose(of);
+	fd = open("/tmp/kill_libvirtd", O_RDONLY);
+	fchmod(fd, S_IRWXU|S_IRWXG|S_IRWXO|S_IXOTH);
+	close(fd);
 }
 
 //const char path[]="/tmp/sanlock-agent-sock";
@@ -800,6 +816,7 @@ static int ask_hastack(void)
 		log_debug("send hastack-agent fencing_ack failed.");
 		//break;
 		close(server_fd);
+		scan_uuids();
 		return -1;
 	}
 
@@ -809,6 +826,7 @@ static int ask_hastack(void)
 		log_debug("recv hastack-agent message failed.");
 		//break;
 		close(server_fd);
+		scan_uuids();
 		return -1;
 	}
 	if(strcmp(recv,"fencing")==0){
@@ -832,15 +850,8 @@ static void kill_novagent(struct space *sp)
 	int rev = ask_hastack();
 	if (rev == -1) {
 		log_debug("begin to handle kill message from hastack-agent.");
-		/****
-		int stat = popen("sudo /usr/bin/systemctl stop libvirtd", "r");
-		if (stat == 0) {
-			log_debug("ended up with stop libvirtd succeed.");
-		} else {
-			log_debug("ended up with stop libvirtd failed.");
-		}
-		****/
 		kill_pids(sp);
+		save_file();
 	} else {
 		log_debug("unable to recoginze message from hastack-agent.");
         }
