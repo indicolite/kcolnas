@@ -844,16 +844,29 @@ static int ask_hastack(void)
 	return -1;
 }
 
-static void kill_novagent(struct space *sp)
+static int kill_novagent(struct space *sp)
 {
 	log_debug("in kill_novagent");
 	int rev = ask_hastack();
 	if (rev == -1) {
 		log_debug("begin to handle kill message from hastack-agent.");
+		sp->space_dead = 1;
+		sp->killing_pids = 1;
 		kill_pids(sp);
-		save_file();
+		if (fork()==0) {
+			const char * envp[] = {"PWD=/tmp", NULL};
+			if (execle("/usr/bin/systemctl", "systmctl", "stop",  "libvirtd", NULL, envp) == -1) {
+				log_debug("in kill_novagent(), kill libvirtd failed");
+			}
+			log_debug("in kill_novagent(), kill libvirtd succeed");
+			exit(1);
+                }
+		//kill_pids(sp);
+		//save_file();
+		return -1;
 	} else {
 		log_debug("unable to recoginze message from hastack-agent.");
+		return 0;
         }
 }
 
@@ -975,13 +988,15 @@ static int main_loop(void)
 			if (rv || sp->external_remove || (external_shutdown > 1)) {
 				log_space(sp, "set killing_pids check %d remove %d",
 					  rv, sp->external_remove);
-				sp->space_dead = 1;
-				sp->killing_pids = 1;
+				//sp->space_dead = 1;
+				//sp->killing_pids = 1;
 				//kill_pids(sp);
 				log_debug("enter kill_novagent");
-				kill_novagent(sp);
+				int kill = kill_novagent(sp);
 				log_debug("exit  kill_novagent");
-				check_interval = RECOVERY_CHECK_INTERVAL;
+				if (kill == -1) {
+					check_interval = RECOVERY_CHECK_INTERVAL;
+				}
 
 			} else if (check_all) {
 				check_other_leases(sp, check_buf);
