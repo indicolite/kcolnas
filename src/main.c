@@ -2796,6 +2796,7 @@ static int do_client(void)
 		if (fd < 0)
 			goto out;
 
+		fflush(NULL);
 		if (daemon(0, 0) < 0) {
 			log_tool("cannot fork daemon\n");
 			exit(EXIT_FAILURE);
