@@ -2850,6 +2850,7 @@ void call_cmd_daemon(int ci, struct sm_header *h_recv, int client_maxi)
 		break;
 	case SM_CMD_KILLALL:
 		
+		/****
 		pthread_mutex_lock(&spaces_mutex);
 		sp = find_lockspace("__LIBVIRT__DISKS__");
 		if (sp)
@@ -2858,6 +2859,14 @@ void call_cmd_daemon(int ci, struct sm_header *h_recv, int client_maxi)
                 // kill all pid
                 sp->killing_pids = 1 ;
 		kill_pids(sp);
+		****/
+		for (ci = 0; ci <= client_maxi; ci++) {
+			if(client[ci].pid > 0 && (*client[ci].tokens != NULL)) {
+				//send_helper_kill(sp, &client[ci], SIGKILL);
+				kill(client[ci].pid, SIGKILL);
+				log_debug("cmd_killall with pid %d get okay", client[ci].pid);
+			}
+		}	
 		break;
 	case SM_CMD_RESTRICT:
 		cmd_restrict(ci, fd, h_recv);
