@@ -739,17 +739,17 @@ static void scan_uuids(void)
 
 	int ci;
 	outfile = fopen("/tmp/temp_uuid.txt", "w+");
-	if(outfile == NULL) {
+	if (outfile == NULL) {
 		log_debug("fopen temp_uuid file failed");
 	}
 	for (ci = 0; ci <= client_maxi; ci++) {
-		if(client[ci].pid > 0) {
+		if (client[ci].pid > 0) {
 			log_debug("in ask_hastack: cmd_kill %d %s", client[ci].pid, client[ci].owner_name);
 			fprintf(outfile, "%s\n", client[ci].owner_name);
 		}
 	}
 	fclose(outfile);
-
+	
 	time(&rawtime);
 	char new_file[255];
 	sprintf(new_file,"/var/lib/hastack/detach_vms/vms_%lu",(unsigned long)time(NULL));
@@ -770,14 +770,15 @@ static void save_file(void)
 	FILE *of;
 	of = fopen("/tmp/kill_libvirtd", "w+");
 	char cmds[]="systemctl stop libvirtd";
-	if(of == NULL) {
-	    log_debug("fopen kill_libvirtd file failed");
+	if (of == NULL) {
+		log_debug("fopen kill_libvirtd file failed");
 	}
 	fprintf(of, "%s", cmds);
 	fclose(of);
 	fd = open("/tmp/kill_libvirtd", O_RDONLY);
 	fchmod(fd, S_IRWXU|S_IRWXG|S_IRWXO|S_IXOTH);
 	close(fd);
+
 }
 
 //const char path[]="/tmp/sanlock-agent-sock";
@@ -788,7 +789,7 @@ static int ask_hastack(void)
 	struct sockaddr_un server_addr;
 	log_debug("in ask_hastack()");
 	server_fd = socket(AF_LOCAL,SOCK_STREAM,0);
-	if(server_fd == -1){
+	if (server_fd == -1) {
 		perror("socket: ");
 		return -1;
 	}
@@ -849,7 +850,7 @@ static int kill_novagent(struct space *sp)
 	log_debug("in kill_novagent");
 	int rev = ask_hastack();
 	if (rev == -1) {
-		log_debug("begin to handle kill message from hastack-agent.");
+		log_debug("begin to handle kill vm-pids with hastack-agent.");
 		sp->space_dead = 1;
 		sp->killing_pids = 1;
 		kill_pids(sp);
@@ -861,6 +862,8 @@ static int kill_novagent(struct space *sp)
 			log_debug("in kill_novagent(), kill libvirtd succeed");
 			exit(1);
                 }
+		sleep(2);
+		sanlock_shutdown(1, 0);
 		//kill_pids(sp);
 		//save_file();
 		return -1;
@@ -954,7 +957,7 @@ static int main_loop(void)
 				continue;
 			}
 
-
+			
 			if (sp->killing_pids) {
 				/*
 				 * continue to kill the pids with increasing
@@ -2795,7 +2798,6 @@ static int do_client(void)
 
 		if (fd < 0)
 			goto out;
-
 		fflush(NULL);
 		if (daemon(0, 0) < 0) {
 			log_tool("cannot fork daemon\n");
@@ -3275,7 +3277,7 @@ static int do_direct(void)
 	case ACT_READ_LEADER:
 		rv = do_direct_read_leader();
 		break;
-
+	
 	case ACT_WRITE_LEADER:
 		rv = do_direct_write_leader();
 		break;
