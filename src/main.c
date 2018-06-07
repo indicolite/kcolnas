@@ -2808,7 +2808,7 @@ static int do_client(void)
 			char temp_cmd[50];
 	        	char int_to_str[10];
 			sprintf(int_to_str, "%d", com.pid);
-			strcpy(temp_cmd, "ps -eo pid |grep ");
+			strcpy(temp_cmd, "ps -eo pid |grep -w ");
 			strcat(temp_cmd, int_to_str);
 			sleep(1);
 			int reslt = system(temp_cmd);
