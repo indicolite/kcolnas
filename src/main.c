@@ -813,7 +813,7 @@ static int ask_hastack(void)
 	//while(1){
 	memset(send,0,sizeof(send));
 	strcpy(send, "fencing_ack");
-	if(write(server_fd, send, strlen(send))==-1){
+	if (write(server_fd, send, strlen(send)) == -1) {
 		log_debug("send hastack-agent fencing_ack failed.");
 		//break;
 		close(server_fd);
@@ -823,22 +823,27 @@ static int ask_hastack(void)
 
 	memset(recv,0,sizeof(recv));
 
-	if(read(server_fd,recv,105)==-1){
+	if (read(server_fd,recv,105) == -1) {
 		log_debug("recv hastack-agent message failed.");
 		//break;
 		close(server_fd);
 		scan_uuids();
 		return -1;
 	}
-	if(strcmp(recv,"fencing")==0){
+	if (strcmp(recv,"fencing") == 0) {
 		log_debug("recv fencing message from hastack-agent.");
 		//break;
 		close(server_fd);
 		return -1;
-	}else {
+	} else if (strcmp(recv,"stop_fencing") == 0) {
 		log_debug("recv message from hastack-agent: %s",recv);
 		close(server_fd);
 		return 0;
+	} else {
+		log_debug("recv message from hastack-agent: %s",recv);
+		close(server_fd);
+		scan_uuids();
+		return -1;
 	}
 	//}
 	close(server_fd);
