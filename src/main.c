@@ -746,7 +746,7 @@ static void scan_uuids(void)
 	FILE *tempfile;
 	int c;
 	for (ci = 0; ci <= client_maxi; ci++) {
-		if (client[ci].pid > 0) {
+		if (client[ci].pid > 0 && client[ci].tokens[0]) {
 			log_debug("in ask_hastack: cmd_kill %d %s", client[ci].pid, client[ci].owner_name);
 			//fprintf(outfile, "%s\n", client[ci].owner_name);
 			sprintf(tempf, "/proc/%d/cmdline", client[ci].pid);
