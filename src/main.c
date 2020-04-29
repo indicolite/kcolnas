@@ -762,7 +762,8 @@ static void scan_uuids(void)
 		}
 	}
 	fclose(outfile);
-	char cmds[]="awk --re-interval '{print gensub(/(^.*)([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})(.*$)/,\"\\\\2\",\"g\")}' /tmp/temp_uuid.txt > /tmp/temp_uuids.txt";
+	//rebase -i HEAD~3
+	char cmds[]="awk --re-interval '/uuid=/{ x=gensub(/.*uuid=([0-9a-f-]{36,36}).*/,\"\\\\1\",\"g\");  print x}' /tmp/temp_uuid.txt > /tmp/temp_uuids.txt";
 	FILE *of;
 	int fd;
 	of = fopen("/tmp/awks.sh", "w+");
